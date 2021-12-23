@@ -9,6 +9,7 @@ import timeFormatting
 # from filters import butter_lowpass_filter
 from algorithmFactory import AlgorithmFactory
 from deepClassifier import DeepClassifier
+from statistics import standardize, standardizer
 # from ksstatistics import StatisticalTester
 # from fileManagement import readStandardMice, readdMat, readdTensor
 
@@ -18,6 +19,7 @@ class ClassifierClient:
         self.recordWaves = recordWaves
         self.inputFileID = inputFileID
         self.chamberID = chamberID
+        chamberLabel = '_chamber' + str(self.chamberID+1)  # adds 1 because in Sleep Sign Recorder, chambers start from 1.
 
         self.params = ParameterSetup()
         if samplingFreq == 0:
@@ -66,7 +68,7 @@ class ClassifierClient:
         presentTime = timeFormatting.presentTimeEscaped()
         logFileID = 'classifier.' + presentTime
         if self.chamberID != -1:
-            logFileID += '_chamber' + str(self.chamberID)
+            logFileID += chamberLabel
         logFileName = logFileID + '.csv'
         self.logFile = open(self.params.logDir + '/' + logFileName, 'a')
 
@@ -95,7 +97,7 @@ class ClassifierClient:
         else:
             outputFileID = self.inputFileID
         if self.chamberID != -1:
-            outputFileID += '_chamber' + str(self.chamberID)
+            outputFileID += chamberLabel
 
         waveFileName = outputFileID + '_wave.csv'
 
@@ -121,7 +123,7 @@ class ClassifierClient:
         '''
         ksFileID = outputFileID
         if self.chamberID != -1:
-            outputFileID += '_chamber' + str(self.chamberID)
+            outputFileID += chamberLabel
         ksFileName = ksFileID + '_ks.csv'
         try:
             self.ksOutputFile = open(self.params.ksDir + '/' + ksFileName, 'a')
@@ -139,19 +141,23 @@ class ClassifierClient:
             self.predFileID = self.inputFileID
 
         if self.chamberID != -1:
-            self.predFileID += '_chamber' + str(self.chamberID)
+            self.predFileID += chamberLabel
 
         print('writes prediction results to ' + self.params.predDir + '/' + self.predFileID + '_pred.txt')
         self.predFile = open(self.params.predDir + '/' + self.predFileID + '_pred.txt', 'w')
         self.predFileBeforeOverwrite = open(self.params.predDir + '/' + self.predFileID + '_pred_before_overwrite.txt', 'w')
         self.predFileWithTimeStamps = open(self.params.predDir + '/' + self.predFileID + '_pred_with_timestamps.txt', 'w')
 
+        self.max_storage_for_standardization = self.samplePointNum * 1000
+        self.standardizer_eeg = standardizer(self.max_storage_for_standardization)
+        self.standardizer_ch2 = standardizer(self.max_storage_for_standardization)
+
     def setStagePredictor(self, classifierID):
-        paramFileName = 'params.' + classifierID + '.json'
+        paramFileName = 'params.' + str(classifierID) + '.json'
         finalClassifierDir = self.params.finalClassifierDir
         paramsForNetworkStructure = ParameterSetup(paramDir=finalClassifierDir, paramFileName=paramFileName)
         classifier = DeepClassifier(self.classLabels, classifierID=classifierID, paramsForDirectorySetup=self.params, paramsForNetworkStructure=paramsForNetworkStructure)
-        model_path = finalClassifierDir + '/weights.' + classifierID + '.pkl'
+        model_path = finalClassifierDir + '/weights.' + str(classifierID) + '.pkl'
         print('model_path = ', model_path)
         classifier.load_weights(model_path)
         self.stagePredictor = StagePredictor(paramsForNetworkStructure, self.extractor, classifier, finalClassifierDir, classifierID, self.params.markovOrderForPrediction)
@@ -220,8 +226,16 @@ class ClassifierClient:
             self.windowStartTime = timeStampSegment[0]
 
         # print('eegFragment =', eegFragment)
+        ### orig_one_record_partial, orig_raw_one_record_partial = self.normalize_eeg(eegFragment, ch2Fragment, self.past_eegSegment, self.past_ch2Segment)
+        standardized_eegFragment = self.standardizer_eeg.standardize(eegFragment)
+        if self.ch2_normalize_for_prediction:
+            standardized_ch2Fragment = self.standardizer_ch2.standardize(ch2Fragment)
+        else:
+            standardized_ch2Fragment = ch2Fragment
+        one_record_partial = np.array((standardized_eegFragment, standardized_ch2Fragment)).transpose()
+        raw_one_record_partial = np.array((eegFragment, ch2Fragment)).transpose()
 
-        one_record_partial, raw_one_record_partial = self.normalize_eeg(eegFragment, ch2Fragment, self.past_eegSegment, self.past_ch2Segment)
+
         self.one_record[self.sampleID:(self.sampleID+self.updateGraph_samplePointNum),:] = one_record_partial
         self.raw_one_record[self.sampleID:(self.sampleID+self.updateGraph_samplePointNum),:] = raw_one_record_partial
         one_record_for_graph_partial = self.normalize_one_record_partial_for_graph(raw_one_record_partial, self.past_eegSegment, self.past_ch2Segment)

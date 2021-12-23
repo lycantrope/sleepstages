@@ -20,7 +20,7 @@
 "label4withEMG" : "withEMG",
 "label4withoutEMG" : "withoutEMG",
 
-"extractorType" : "rawDataWithSTFTWithTime",
+"extractorType" : "rawDataWithSTFT",
 "lightPeriodStartTime": "09:00:00.000",
 
 "classifierType" : "deep",
@@ -29,15 +29,6 @@
 
 "windowSizeInSec" : 10,
 "samplingFreq" : 128,
-
-"graphUpdateFreqInHz" : 1,
-
-"terminalConfigDefaultValue" : "RSE",
-
-"channelIDs" : [1,0],
-
-"showCh2" : 1,
-"useCh2ForReplace" : 1,
 
 "writeWholeWaves" : 1,
 "computeKS" : 0,
@@ -70,7 +61,7 @@
 
 "useRawData" : 1,
 "useFreqHisto" : 1,
-"useTime" : 1,
+"useTime" : 0,
 "useSTFT" : 1,
 
 "optimizerType" : "Adam",
@@ -79,7 +70,7 @@
 "sgd_decay" : "1e-6",
 "sgd_momentum" : 0.1,
 
-"deep_epochs" : 20,
+"deep_epochs" : 50,
 "deep_steps_per_epoch" : 0,
 "deep_batch_size" : 32,
 
@@ -89,7 +80,7 @@
 "torch_strides" : [1,2,2,2,2,2,2,2],
 "torch_skip_by" : 4,
 "torch_patience" : 0,
-"torch_lstm_length" : 10,
+"torch_lstm_length" : 9,
 "torch_lstm_num_layers" : 5,
 "torch_lstm_hidden_size" : 32,
 "torch_lstm_inputDim" : 32,
@@ -114,9 +105,10 @@
 "maxSampleNum" : 0,
 "downsample_outputDim" : 1280,
 "additionalFeatureDim" : 23,
-"markovOrderForTraining" : 6,
+"markovOrderForTraining" : 0,
 "markovOrderForPrediction" : 0,
 "maximumStageNum" : 3,
+"useCh2ForReplace" : 1,
 "ch2IntensityFunc" : "max_mean",
 "ch2_thresh_default" : 1.0,
 
