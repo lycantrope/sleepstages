@@ -25,6 +25,8 @@ class RemOfflineApplication:
         self.postDir = params.postDir
         self.predDir = params.predDir
         self.finalClassifierDir = params.finalClassifierDir
+        observed_samplingFreq = params.samplingFreq
+        observed_epochTime = params.windowSizeInSec
 
         # eegFilePath = args[1]
         # inputFileID = splitext(split(eegFilePath)[1])[0]
@@ -42,14 +44,19 @@ class RemOfflineApplication:
                     fileCnt += 1
                     print('  processing ' + inputFileID)
                     try:
-                        classifierID = selectClassifierID(self.finalClassifierDir, self.classifier_type)
+                        classifierID, model_samplingFreq, model_epochTime = selectClassifierID(self.finalClassifierDir, self.classifier_type)
                         if len(self.args) > 1:
                             if self.args[1] == '--output_the_same_fileID':
-                                self.client = ClassifierClient(self.recordWaves, self.extractorType, self.classifierType, classifierID, inputFileID=inputFileID)
+                                self.client = ClassifierClient(self.recordWaves, self.extractorType, self.classifierType, classifierID, inputFileID=inputFileID,
+                                                                samplingFreq=model_samplingFreq, epochTime=model_epochTime)
                             else:
-                                self.client = ClassifierClient(self.recordWaves, self.extractorType, self.classifierType, classifierID)
+                                if self.args[1] == '--samplingFreq' and len(self.args) > 2:
+                                    observed_samplingFreq = int(self.args[2])
+                                self.client = ClassifierClient(self.recordWaves, self.extractorType, self.classifierType, classifierID,
+                                    samplingFreq=model_samplingFreq, epochTime=model_epochTime)
                         else:
-                            self.client = ClassifierClient(self.recordWaves, self.extractorType, self.classifierType, classifierID)
+                            self.client = ClassifierClient(self.recordWaves, self.extractorType, self.classifierType, classifierID,
+                                samplingFreq=model_samplingFreq, epochTime=model_epochTime)
                         self.client.predictionStateOn()
                         self.client.hasGUI = False
                         # sys.stdout.write('classifierClient started by ' + str(channelOpt) + ' channel.')
@@ -60,7 +67,8 @@ class RemOfflineApplication:
 
                     try:
                         eegFilePath = self.postDir + '/' + inputFileName
-                        self.server = EEGFileReaderServer(self.client, eegFilePath)
+                        self.server = EEGFileReaderServer(self.client, eegFilePath, model_samplingFreq=model_samplingFreq, model_epochTime=model_epochTime,
+                            observed_samplingFreq=observed_samplingFreq, observed_epochTime=observed_epochTime)
 
                     except Exception as e:
                         print(str(e))
