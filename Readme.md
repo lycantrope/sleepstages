@@ -130,6 +130,8 @@ We included a sample "WAVEDIR" named "data/sampledata". Its "Raw" and "Judge" di
 
 The code in the "code" directory uses the file named "path.json" to find the "data" directory. It can be changed to another directory name by rewriting "path.json".
 
+The "waves" directory is where EEG recordings are written out in case of online classification. By default, data/params/params.json is set to "writeWholeWaves" : 0, suppressing this output. By setting to "writeWholeWaves" : 1, whole EEG recordings are written out to the "waves" directory.
+
 ## Parameter setup
 
 The "data/params" directory should contain "params.json" for setting up parameters for feature extraction, training, and prediction.
@@ -150,11 +152,32 @@ python computeTestError.py
 
 readOfflineEEGandStageLabels2pickle.py reads text files containing EEG raw data signals and ground truth stage labels from the WAVEDIR directory. It writes files starting with "eegAndStage" into the "data/pickled" directory. These files are in Python's pickle format to enable faster access.
 
-extractFeatures.py reads "eegAndStage" files and write files starting with "features". These files contain feature vectors used for training classifiers.
+extractFeatures.py reads "eegAndStage" files and write files starting with "features". These files contain feature vectors used for training classifiers. They will be generated in "data/pickled".
 
 trainClassifier.py reads "features" and writes files starting with "weights", "params", and "files_used_for_training". These files contain randomly generated six-character IDs (i.e., classifier IDs) in their file names.
 
 The "weights" file contains weight parameters obtained from training. The "params" file is a copy of "params.json" in "data/pickled" that is intended to save the parameters used for training the classifier. "files_used_for_training" indicates which recordings were used for training that classifier. These files are excluded when testing the classifier.
+
+## Using a newly trained model in prediction
+
+To have a newly trained model in applicational programs (offline.py, online.py and app.py), files params.json and weights.pkl must be copied from data/params to data/finalclassifier.
+
+```
+data/params : used for training and testing
+data/finalclassifier : used for making predictions by offline.py, online.py, and app.py
+```
+
+Edit or revise data/finalclassifier/classifierTypes.csv so that the newly trained model can be used by applicational programs (offline.py, online.py and app.py). For each line, the format is
+
+```
+classifierID, network type, sampling frequency, epoch time length.
+```
+
+In summary, the pipeline is as follows:
+
+1. Train using data/params and data/pickled
+2. Choose a good trained model and copy params.CLASSIFIER_ID.json and weights.CLASSIFIER_ID.pkl to to data/finalclassifier
+3. Run either offline.py, online.py or app.py
 
 ## Reference
 
@@ -163,6 +186,10 @@ Some results of experiments using this software are provided in our paper:
 Taro Tezuka, Deependra Kumar, Sima Singh, Iyo Koyanagi, Toshie Naoi, Masanori Sakaguchi, Real-time, automatic, open-source﻿﻿ sleep stage classification system using single EEG for mice, Scientific Reports, 11:11151, May 2021. [DOI:10.1038/s41598-021-90332-1]
 
 https://www.nature.com/articles/s41598-021-90332-1
+
+Iyo Koyanagi, Taro Tezuka, Jiahui Yu, Sakthivel Srinivasan, Toshie Naoi, Shinnosuke Yasugaki, Ayaka Nakai, Shimpei Taniguchi, Yu Hayashi, Yasushi Nakano and Masanori Sakaguchi, Fully automatic REM sleep stage-specific intervention systems using single EEG in mice, Neuroscience Research, 186:51-58, January 2023. [DOI:10.1016/j.neures.2022.10.001]
+
+https://www.sciencedirect.com/science/article/pii/S0168010222002620
 
 A usage video is available from the following link.
 
